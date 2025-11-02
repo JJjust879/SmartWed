@@ -49,21 +49,6 @@ export const app = initializeApp(firebaseConfig);
 
 ⚠️ Do not upload your firebaseConfig.js file or API keys to public repositories.
 
-📂 Project Structure
-SmartWed/
-│
-├── app/                 # Contains main application screens and routes
-│   ├── HomePage.tsx
-│   ├── VendorDashboard.tsx
-│   ├── GuestAuth.tsx
-│   └── TaskManager.tsx
-│
-├── components/          # Shared UI components (e.g., navigation, layouts)
-├── rsvpWeb/             # Firebase-hosted RSVP web page
-├── firebaseConfig.js    # (Excluded from GitHub for security)
-├── app.json
-├── package.json
-└── tsconfig.json
 
 🧰 Useful Commands
 
