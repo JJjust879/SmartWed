@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wedding RSVP 💍</title>
+  <style>
+    body {
+      font-family: "Arial", sans-serif;
+      background-color: #fff5f8;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #d6336c;
+      margin-bottom: 5px;
+    }
+    #weddingDate {
+      font-size: 18px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    p {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      background-color: #d6336c;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: 10px 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    button.secondary {
+      background-color: #999;
+    }
+    #rsvpSection, #attendingOptions {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    select, input[type="checkbox"] {
+      margin: 8px 0;
+    }
+    label {
+      font-weight: 500;
+    }
+    #statusMsg {
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Wedding RSVP 💍</h1>
+  <p id="weddingDate">Loading wedding date...</p>
+  <p id="guestName">Loading guest info...</p>
+
+  <div id="rsvpSection">
+    <button id="attendBtn">Attending</button>
+    <button class="secondary" id="notAttendBtn">Not Attending</button>
+  </div>
+
+  <div id="attendingOptions">
+    <p><label for="guestCount">How many guests (including you)?</label></p>
+    <select id="guestCount">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+
+    <p><label><input type="checkbox" id="vegetarian" /> Vegetarian meal(s)</label></p>
+
+    <button id="saveBtn">Save RSVP</button>
+    <button class="secondary" id="cancelBtn">Cancel</button>
+  </div>
+
+  <p id="statusMsg"></p>
+
+  <!-- Firebase SDKs via CDN -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAnFi4kIUZFq5AzK3sEWLjREE5bEMx2Jls",
+      authDomain: "smartwed-jj777.firebaseapp.com",
+      projectId: "smartwed-jj777",
+      storageBucket: "smartwed-jj777.firebasestorage.app",
+      messagingSenderId: "558059387787",
+      appId: "1:558059387787:android:fa21cd606660d2d8d60d8e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const guestId = params.get("id");
+
+    const guestNameEl = document.getElementById("guestName");
+    const weddingDateEl = document.getElementById("weddingDate");
+    const rsvpSection = document.getElementById("rsvpSection");
+    const attendingOptions = document.getElementById("attendingOptions");
+    const statusMsg = document.getElementById("statusMsg");
+
+    let guestDocRef = null;
+
+    // 🔹 Fetch guest and wedding info
+    async function loadGuestAndWedding() {
+      if (!guestId) {
+        guestNameEl.textContent = "Invalid RSVP link.";
+        weddingDateEl.textContent = "";
+        return;
+      }
+
+      guestDocRef = doc(db, "guests", guestId);
+      const guestSnap = await getDoc(guestDocRef);
+
+      if (guestSnap.exists()) {
+        const guest = guestSnap.data();
+        guestNameEl.textContent = `Hi ${guest.name}!`;
+        rsvpSection.style.display = "flex";
+
+        // 🔹 Fetch wedding date from the user who owns the guest
+        if (guest.userId) {
+          const userDoc = await getDoc(doc(db, "users", guest.userId));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data.weddingDate) {
+              weddingDateEl.textContent = `Wedding Date: ${data.weddingDate}`;
+            } else {
+              weddingDateEl.textContent = "Wedding Date: Not set";
+            }
+          } else {
+            weddingDateEl.textContent = "Wedding Date: Not found";
+          }
+        } else {
+          // fallback if no userId in guest doc
+          weddingDateEl.textContent = "Wedding Date: 2026-6-6";
+        }
+      } else {
+        guestNameEl.textContent = "Guest not found!";
+        weddingDateEl.textContent = "";
+      }
+    }
+
+    loadGuestAndWedding();
+
+    // Handle attending choice
+    document.getElementById("attendBtn").addEventListener("click", () => {
+      rsvpSection.style.display = "none";
+      attendingOptions.style.display = "flex";
+    });
+
+    // Save RSVP
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      const count = parseInt(document.getElementById("guestCount").value);
+      const vegetarian = document.getElementById("vegetarian").checked;
+
+      await updateDoc(guestDocRef, {
+        status: "Attending",
+        guestCount: count,
+        vegetarian: vegetarian,
+      });
+
+      attendingOptions.style.display = "none";
+      statusMsg.textContent = `Thank you! RSVP saved for ${count} guest${count > 1 ? "s" : ""}.`;
+    });
+
+    // Not attending
+    document.getElementById("notAttendBtn").addEventListener("click", async () => {
+      await updateDoc(guestDocRef, {
+        status: "Not Attending",
+        guestCount: 0,
+        vegetarian: false,
+      });
+      rsvpSection.style.display = "none";
+      statusMsg.textContent = "Sorry you can’t make it, but thank you for letting us know!";
+    });
+
+    // Cancel
+    document.getElementById("cancelBtn").addEventListener("click", () => {
+      attendingOptions.style.display = "none";
+      rsvpSection.style.display = "flex";
+    });
+  </script>
+</body>
+</html>

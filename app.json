@@ -23,7 +23,17 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "config": {
+        "firebase": {
+          "apiKey": "AIzaSyAnFi4kIUZFq5AzK3sEWLjREE5bEMx2Jls",
+          "authDomain": "smartwed-jj777.firebaseapp.com",
+          "projectId": "smartwed-jj777",
+          "storageBucket": "smartwed-jj777.appspot.com",
+          "messagingSenderId": "558059387787",
+          "appId": "1:558059387787:android:fa21cd606660d2d8d60d8e"
+        }
+      }
     },
     "plugins": [
       "expo-router",
