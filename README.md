@@ -75,11 +75,3 @@ firebase deploy
 
 
 After deployment, the live RSVP link can be shared with guests for seamless online confirmation of attendance.
-
-📚 Learn More
-
-React Native documentation
-
-Expo documentation
-
-Firebase documentation
