@@ -1,50 +1,100 @@
-# Welcome to your Expo app 👋
+SmartWed 💍 — React Native (Expo) + Firebase
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is the SmartWed mobile application, developed using React Native
+ with Expo
+ and integrated with Firebase
+.
+The project provides a cross-platform solution for couples, vendors, and guests to manage and coordinate wedding-related activities efficiently.
 
-## Get started
-
+⚙️ Getting Started
 1. Install dependencies
+npm install
 
-   ```bash
-   npm install
-   ```
+2. Start the application
+npx expo start
 
-2. Start the app
 
-   ```bash
-   npx expo start
-   ```
+In the terminal output, you’ll see options to open the app in:
 
-In the output, you'll find options to open the app in a
+A development build
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+An Android emulator
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+An iOS simulator
 
-## Get a fresh project
+The Expo Go
+ app on your physical device
 
-When you're ready, run:
+⚠️ Important Note — Firebase Configuration
 
-```bash
+The file firebaseConfig.js is intentionally excluded from this repository for security reasons.
+It contains private Firebase API credentials specific to the SmartWed project.
+
+To run the project locally, create your own firebaseConfig.js file inside the root directory and include your Firebase credentials, for example:
+
+// firebaseConfig.js
+import { initializeApp } from "firebase/app";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+export const app = initializeApp(firebaseConfig);
+
+
+⚠️ Do not upload your firebaseConfig.js file or API keys to public repositories.
+
+📂 Project Structure
+SmartWed/
+│
+├── app/                 # Contains main application screens and routes
+│   ├── HomePage.tsx
+│   ├── VendorDashboard.tsx
+│   ├── GuestAuth.tsx
+│   └── TaskManager.tsx
+│
+├── components/          # Shared UI components (e.g., navigation, layouts)
+├── rsvpWeb/             # Firebase-hosted RSVP web page
+├── firebaseConfig.js    # (Excluded from GitHub for security)
+├── app.json
+├── package.json
+└── tsconfig.json
+
+🧰 Useful Commands
+
+Reset to a blank project (removes demo screens):
+
 npm run reset-project
-```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-## Learn more
+Build a standalone app:
 
-To learn more about developing your project with Expo, look at the following resources:
+npx expo prebuild
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+☁️ Deployment Notes
 
-## Join the community
+The SmartWed RSVP page (located in the rsvpWeb/ directory) is deployed using Firebase Hosting.
+This allows guests to easily access and submit RSVP responses via a web interface.
 
-Join our community of developers creating universal apps.
+Firebase Hosting ensures a secure and reliable deployment process, automatically managing SSL certificates, CDN distribution, and real-time updates.
+To deploy the RSVP web page, use the following commands:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+firebase login
+firebase init hosting
+firebase deploy
+
+
+After deployment, the live RSVP link can be shared with guests for seamless online confirmation of attendance.
+
+📚 Learn More
+
+React Native documentation
+
+Expo documentation
+
+Firebase documentation
