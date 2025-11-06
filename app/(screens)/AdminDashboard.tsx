@@ -43,17 +43,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const toggleApproval = async (vendorId: string, currentStatus: string) => {
+  const toggleApproval = async (vendorId: string, currentStatus: any) => {
     try {
       setUpdating(true);
-      const newStatus = currentStatus === "Yes" ? "No" : "Yes";
+      
+      const newStatus = currentStatus === true || currentStatus === "Yes"; 
+      // Flip boolean
+      const newApprovedValue = !newStatus; 
+
       await updateDoc(doc(firestore, "vendors", vendorId), {
-        approved: newStatus,
+        approved: newApprovedValue,
       });
+
       setSelectedVendor((prev: any) => ({
         ...prev,
-        approved: newStatus,
+        approved: newApprovedValue,
       }));
+
       await fetchVendors();
     } catch (err) {
       console.error("Error updating approval:", err);
@@ -74,10 +80,10 @@ export default function AdminDashboard() {
       <Text
         style={[
           styles.status,
-          { color: item.approved === "Yes" ? "green" : "red" },
+          { color: item.approved ? "green" : "red" }
         ]}
       >
-        {item.approved === "Yes" ? "Approved" : "Pending"}
+        {item.approved ? "Approved" : "Pending"}
       </Text>
     </TouchableOpacity>
   );
@@ -155,7 +161,7 @@ export default function AdminDashboard() {
                     Toggle Approval:
                   </Text>
                   <Switch
-                    value={selectedVendor.approved === "Yes"}
+                    value={!!selectedVendor.approved}
                     onValueChange={() =>
                       toggleApproval(selectedVendor.id, selectedVendor.approved)
                     }

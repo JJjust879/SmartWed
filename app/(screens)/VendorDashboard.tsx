@@ -68,7 +68,6 @@ export default function VendorDashboard() {
           return;
         }
         setVendorId(uid);
-        await fetchVendorInfo(uid);
       } catch (err) {
         console.error(err);
         Alert.alert("Error", "Failed to load vendor data.");
@@ -97,6 +96,27 @@ export default function VendorDashboard() {
 
     return () => unsubscribe();
   }, [vendorId]);
+
+  useEffect(() => {
+    if (!vendorId) return;
+
+    const vendorRef = doc(firestore, "vendors", vendorId);
+
+    const unsubscribe = onSnapshot(vendorRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setBusinessName(data.businessName || "");
+        setDescription(data.description || "");
+        setLocation(data.location || "");
+        setContact(data.contact || "");
+        setEmail(data.email || "");
+        setVendorStatus(data.approved ? "approved" : "pending");
+        setRating(data.rating || 0);
+      }
+    });
+
+  return () => unsubscribe();
+}, [vendorId]);
 
   const openWhatsApp = (phone: string) => {
     if (!phone) {

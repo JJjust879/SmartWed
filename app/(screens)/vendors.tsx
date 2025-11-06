@@ -230,7 +230,7 @@ function BrowseVendors({ onViewRating }: { onViewRating: (vendor: Vendor) => voi
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const q = query(collection(firestore, "vendors"), where("approved", "==", "Yes"));
+        const q = query(collection(firestore, "vendors"), where("approved", "==", true));
         const snap = await getDocs(q);
         const vendorsData: Vendor[] = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Vendor));
 

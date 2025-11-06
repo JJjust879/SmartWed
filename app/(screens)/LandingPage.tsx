@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
 import { auth, firestore, firebaseConfig } from "../../firebaseConfig";
 import {
   PhoneAuthProvider,
@@ -32,7 +31,6 @@ import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 
 export default function LandingPage() {
   const router = useRouter();
-
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [username, setUsername] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -50,7 +48,7 @@ export default function LandingPage() {
   const hashPassword = async (plain: string) =>
     await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, plain);
 
-  // ======= REGISTER =======
+  // --- REGISTER ---
   const handleRegister = async () => {
     if (!username || !phoneNumber || !password || !confirmPassword || !weddingDate) {
       alert("Please fill all fields, including your wedding date");
@@ -62,16 +60,9 @@ export default function LandingPage() {
     }
 
     try {
-      const q = query(
-        collection(firestore, "users"),
-        where("phoneNumber", "==", phoneNumber)
-      );
+      const q = query(collection(firestore, "users"), where("phoneNumber", "==", phoneNumber));
       const qSnap = await getDocs(q);
-
-      if (!qSnap.empty) {
-        alert("Phone number already registered!");
-        return;
-      }
+      if (!qSnap.empty) return alert("Phone number already registered!");
 
       const phoneProvider = new PhoneAuthProvider(auth);
       const id = await phoneProvider.verifyPhoneNumber(
@@ -87,21 +78,12 @@ export default function LandingPage() {
 
   const confirmCode = async () => {
     if (!confirmation) return;
-
     try {
-      const credential = PhoneAuthProvider.credential(
-        confirmation,
-        verificationCode
-      );
+      const credential = PhoneAuthProvider.credential(confirmation, verificationCode);
       const userCredential = await signInWithCredential(auth, credential);
       const user = userCredential.user;
-
-      if (!user) {
-        alert("User not found after verification.");
-        return;
-      }
-
       const hashedPassword = await hashPassword(password);
+
       await setDoc(doc(firestore, "users", user.uid), {
         username,
         phoneNumber,
@@ -114,39 +96,26 @@ export default function LandingPage() {
       setMode("login");
       setConfirmation(null);
       setVerificationCode("");
-    } catch (err: any) {
+    } catch {
       alert("Invalid verification code.");
     }
   };
 
-  // ======= LOGIN =======
+  // --- LOGIN ---
   const handleLogin = async () => {
-    if (!phoneNumber || !password) {
-      alert("Please enter both phone number and password.");
-      return;
-    }
+    if (!phoneNumber || !password) return alert("Please enter both phone number and password.");
 
     try {
-      const q = query(
-        collection(firestore, "users"),
-        where("phoneNumber", "==", phoneNumber)
-      );
+      const q = query(collection(firestore, "users"), where("phoneNumber", "==", phoneNumber));
       const qSnap = await getDocs(q);
-
-      if (qSnap.empty) {
-        alert("Phone number not registered!");
-        return;
-      }
+      if (qSnap.empty) return alert("Phone number not registered!");
 
       const userDoc = qSnap.docs[0];
       const userData = userDoc.data();
       const uid = userDoc.id;
 
       const hashedInput = await hashPassword(password);
-      if (hashedInput !== userData.password) {
-        alert("Incorrect password!");
-        return;
-      }
+      if (hashedInput !== userData.password) return alert("Incorrect password!");
 
       const userCredential = await signInAnonymously(auth);
       const user = userCredential.user;
@@ -166,33 +135,20 @@ export default function LandingPage() {
     }
   };
 
-  // ======= FORGOT PASSWORD =======
+  // --- FORGOT PASSWORD ---
   const handleForgotPassword = async () => {
-    if (!phoneNumber) {
-      alert("Enter your phone number.");
-      return;
-    }
-
+    if (!phoneNumber) return alert("Enter your phone number.");
     try {
-      const q = query(
-        collection(firestore, "users"),
-        where("phoneNumber", "==", phoneNumber)
-      );
+      const q = query(collection(firestore, "users"), where("phoneNumber", "==", phoneNumber));
       const qSnap = await getDocs(q);
+      if (qSnap.empty) return alert("Phone number not registered!");
 
-      if (qSnap.empty) {
-        alert("Phone number not registered!");
-        return;
-      }
-
-      const fullPhone = getFullPhone(phoneNumber);
-      const phoneProvider = new PhoneAuthProvider(auth);
-      const id = await phoneProvider.verifyPhoneNumber(
-        fullPhone,
+      const id = await new PhoneAuthProvider(auth).verifyPhoneNumber(
+        getFullPhone(phoneNumber),
         recaptchaVerifier.current as any
       );
       setConfirmation(id);
-      alert(`Reset code sent to ${fullPhone}`);
+      alert(`Reset code sent to +60${phoneNumber}`);
     } catch (err: any) {
       alert(err.message);
     }
@@ -200,48 +156,33 @@ export default function LandingPage() {
 
   const resetPassword = async () => {
     if (!confirmation) return;
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
+    if (password !== confirmPassword) return alert("Passwords do not match");
 
     try {
-      const credential = PhoneAuthProvider.credential(
-        confirmation,
-        verificationCode
-      );
-      const userCredential = await signInWithCredential(auth, credential);
-      const user = userCredential.user;
+      const credential = PhoneAuthProvider.credential(confirmation, verificationCode);
+      await signInWithCredential(auth, credential);
 
-      if (!user) {
-        alert("User not found after verification.");
-        return;
-      }
+      const q = query(collection(firestore, "users"), where("phoneNumber", "==", phoneNumber));
+      const qSnap = await getDocs(q);
+      if (qSnap.empty) return alert("User not found.");
 
+      const userDoc = qSnap.docs[0];
       const hashedPassword = await hashPassword(password);
-      await updateDoc(doc(firestore, "users", user.uid), {
-        password: hashedPassword,
-      });
+      await updateDoc(doc(firestore, "users", userDoc.id), { password: hashedPassword });
 
       alert("Password reset successful! Please login again.");
       setMode("login");
       setConfirmation(null);
       setVerificationCode("");
-      setPassword("");
-      setConfirmPassword("");
-      setPhoneNumber("");
-    } catch (err: any) {
+    } catch {
       alert("Invalid code or error resetting password.");
     }
   };
 
-  // ======= UI =======
+  // --- UI ---
   return (
     <View style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-      />
+      <FirebaseRecaptchaVerifierModal ref={recaptchaVerifier} firebaseConfig={firebaseConfig} />
 
       <Text style={styles.title}>💍 SmartWed</Text>
       <Text style={styles.subtitle}>
@@ -252,104 +193,59 @@ export default function LandingPage() {
           : "Reset your password securely via SMS verification."}
       </Text>
 
-      {/* Toggle */}
+      {/* --- Mode Switch --- */}
       {mode !== "forgot" && (
         <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={[styles.toggleButton, mode === "login" && styles.activeToggle]}
-            onPress={() => {
-              setMode("login");
-              setConfirmation(null);
-              setVerificationCode("");
-            }}
+            onPress={() => setMode("login")}
           >
-            <Text style={[styles.toggleText, mode === "login" && styles.activeText]}>
-              Login
-            </Text>
+            <Text style={[styles.toggleText, mode === "login" && styles.activeText]}>Login</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleButton, mode === "register" && styles.activeToggle]}
-            onPress={() => {
-              setMode("register");
-              setConfirmation(null);
-              setVerificationCode("");
-            }}
+            onPress={() => setMode("register")}
           >
-            <Text style={[styles.toggleText, mode === "register" && styles.activeText]}>
-              Register
-            </Text>
+            <Text style={[styles.toggleText, mode === "register" && styles.activeText]}>Register</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Register fields */}
+      {/* --- Register Form --- */}
       {mode === "register" && !confirmation && (
         <>
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            placeholderTextColor="#888"
-            value={username}
-            onChangeText={setUsername}
-          />
-
+          <TextInput style={styles.input} placeholder="Username" value={username} onChangeText={setUsername} />
           <View style={styles.phoneContainer}>
             <Text style={styles.countryCode}>+60</Text>
             <TextInput
               style={styles.phoneInput}
-              value={phoneNumber}
-              onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, "").slice(0, 9))}
               placeholder="123456789"
-              placeholderTextColor="#888"
+              value={phoneNumber}
+              onChangeText={(t) => setPhoneNumber(t.replace(/\D/g, "").slice(0, 9))}
               keyboardType="phone-pad"
             />
           </View>
+          <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
+          <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showPassword} />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#888"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
+          <TouchableOpacity style={[styles.input, { justifyContent: "center" }]} onPress={() => setShowDatePicker(true)}>
+            <Text style={{ color: weddingDate ? "#000" : "#888" }}>
+              {weddingDate ? `Wedding Date: ${weddingDate}` : "Select Wedding Date"}
+            </Text>
+          </TouchableOpacity>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            placeholderTextColor="#888"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showPassword}
-          />
-
-          {/* WEDDING DATE PICKER */}
-          <View style={{ width: "100%" }}>
-            <TouchableOpacity
-              style={[styles.input, { justifyContent: "center" }]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={{ color: weddingDate ? "#000" : "#888" }}>
-                {weddingDate ? `Wedding Date: ${weddingDate}` : "Select Wedding Date"}
-              </Text>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={weddingDate ? new Date(weddingDate) : new Date()}
-                mode="date"
-                display="default"
-                minimumDate={new Date()} // restricts past dates
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
-                    const formattedDate = selectedDate.toISOString().split("T")[0];
-                    setWeddingDate(formattedDate);
-                  }
-                }}
-              />
-            )}
-          </View>
+          {showDatePicker && (
+            <DateTimePicker
+              value={weddingDate ? new Date(weddingDate) : new Date()}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(e, d) => {
+                setShowDatePicker(false);
+                if (d) setWeddingDate(d.toISOString().split("T")[0]);
+              }}
+            />
+          )}
 
           <View style={styles.showPasswordContainer}>
             <Switch value={showPassword} onValueChange={setShowPassword} />
@@ -362,14 +258,13 @@ export default function LandingPage() {
         </>
       )}
 
-      {/* Confirmation step */}
       {mode === "register" && confirmation && (
         <>
           <TextInput
             style={styles.input}
             placeholder="Enter verification code"
             value={verificationCode}
-            onChangeText={(text) => setVerificationCode(text.replace(/\D/g, "").slice(0, 6))}
+            onChangeText={(t) => setVerificationCode(t.replace(/\D/g, "").slice(0, 6))}
             keyboardType="number-pad"
           />
           <TouchableOpacity style={styles.button} onPress={confirmCode}>
@@ -378,25 +273,22 @@ export default function LandingPage() {
         </>
       )}
 
-      {/* Login */}
+      {/* --- Login --- */}
       {mode === "login" && (
         <>
           <View style={styles.phoneContainer}>
             <Text style={styles.countryCode}>+60</Text>
             <TextInput
               style={styles.phoneInput}
-              value={phoneNumber}
-              onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, "").slice(0, 9))}
               placeholder="123456789"
-              placeholderTextColor="#888"
+              value={phoneNumber}
+              onChangeText={(t) => setPhoneNumber(t.replace(/\D/g, "").slice(0, 9))}
               keyboardType="phone-pad"
             />
           </View>
-
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#888"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -411,14 +303,76 @@ export default function LandingPage() {
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => {
-              setMode("forgot");
-              setConfirmation(null);
-              setVerificationCode("");
-            }}
-          >
-            <Text style={{ color: "#d6336c", marginTop: 10 }}>Forgot Password?</Text>
+          <TouchableOpacity onPress={() => setMode("forgot")}>
+            <Text style={styles.linkText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push("./VendorAuth")}>
+            <Text style={styles.linkText}>Vendor Login / Register</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("./GuestAuth")}>
+            <Text style={styles.linkText}>View Guest Gallery</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {/* --- Forgot Password --- */}
+      {mode === "forgot" && (
+        <>
+          <View style={styles.phoneContainer}>
+            <Text style={styles.countryCode}>+60</Text>
+            <TextInput
+              style={styles.phoneInput}
+              placeholder="123456789"
+              value={phoneNumber}
+              onChangeText={(t) => setPhoneNumber(t.replace(/\D/g, "").slice(0, 9))}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          {!confirmation && (
+            <TouchableOpacity style={styles.button} onPress={handleForgotPassword}>
+              <Text style={styles.buttonText}>Send Reset Code</Text>
+            </TouchableOpacity>
+          )}
+
+          {confirmation && (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter verification code"
+                value={verificationCode}
+                onChangeText={(t) => setVerificationCode(t.replace(/\D/g, "").slice(0, 6))}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="New Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm New Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showPassword}
+              />
+
+              <View style={styles.showPasswordContainer}>
+                <Switch value={showPassword} onValueChange={setShowPassword} />
+                <Text style={{ marginLeft: 8 }}>Show Password</Text>
+              </View>
+
+              <TouchableOpacity style={styles.button} onPress={resetPassword}>
+                <Text style={styles.buttonText}>Reset Password</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity onPress={() => setMode("login")}>
+            <Text style={styles.linkText}>Back to Login</Text>
           </TouchableOpacity>
         </>
       )}
@@ -427,25 +381,9 @@ export default function LandingPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff0f6",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "bold",
-    color: "#d6336c",
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#555",
-    textAlign: "center",
-    marginBottom: 30,
-  },
+  container: { flex: 1, backgroundColor: "#fff0f6", alignItems: "center", justifyContent: "center", padding: 20 },
+  title: { fontSize: 36, fontWeight: "bold", color: "#d6336c", marginBottom: 5 },
+  subtitle: { fontSize: 16, color: "#555", textAlign: "center", marginBottom: 30 },
   toggleContainer: {
     flexDirection: "row",
     marginBottom: 20,
@@ -491,10 +429,6 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  showPasswordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    alignSelf: "flex-start",
-  },
+  showPasswordContainer: { flexDirection: "row", alignItems: "center", marginBottom: 10, alignSelf: "flex-start" },
+  linkText: { color: "#d6336c", marginTop: 10, fontWeight: "600" },
 });
