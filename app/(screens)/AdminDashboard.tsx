@@ -48,7 +48,6 @@ export default function AdminDashboard() {
       setUpdating(true);
       
       const newStatus = currentStatus === true || currentStatus === "Yes"; 
-      // Flip boolean
       const newApprovedValue = !newStatus; 
 
       await updateDoc(doc(firestore, "vendors", vendorId), {
